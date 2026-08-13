@@ -1,0 +1,31 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Без email/пароля: регистрацию и JWT по заданию не делаем, нужен только владелец заметок.
+model User {
+  id        String   @id @default(uuid())
+  notes     Note[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Note {
+  id        String   @id @default(uuid())
+  title     String
+  content   String? // опционально в задании; NULL = пустой текст, не «нет колонки»
+  userId    String
+  // Cascade: пользователь удалён – его заметки тоже, иначе orphan rows с чужим userId.
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Все запросы изолированы по владельцу; покрывает FK.
+  @@index([userId])
+  // Список своих заметок: WHERE userId ORDER BY createdAt DESC, id DESC + cursor.
+  @@index([userId, createdAt, id])
+}
